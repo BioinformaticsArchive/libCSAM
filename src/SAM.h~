@@ -1,0 +1,105 @@
+#ifndef _SAM_H
+#define _SAM_H
+
+
+#include <string>
+#include <cstring>
+#include <libcds/libcds.h>
+#include <libcds/io.h>
+#include <libcds/time.h>
+#include <cmath>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
+
+using namespace cds;
+using namespace cds::basic;
+
+using namespace std;
+
+using namespace boost::archive;
+using namespace boost::iostreams;
+
+
+inline string NumtoString(cds_word x){
+	stringstream ss;
+	ss << x;
+	return ss.str();
+}
+
+inline string GZcompressString(string s){
+	stringstream zippedStream;
+	{
+		filtering_ostream filteringStream;
+		filteringStream.push(gzip_compressor());
+		filteringStream.push(zippedStream);
+		filteringStream << s;
+	}
+	return  zippedStream.str();
+}
+
+inline string GZdecompressString(string s){
+	stringstream ss,	unzippedStream;               
+	ss << s;
+	filtering_istream filteringStream;
+	filteringStream.push(gzip_decompressor());	
+	filteringStream.push(ss);
+	copy(filteringStream, unzippedStream);
+	return unzippedStream.str();
+}
+
+
+template <typename T>
+void FreeAll( T & t ){
+	    T tmp;
+			t.swap( tmp );
+}
+
+typedef struct{
+	vector<string> stringV;
+	vector<int> frecV;
+}TableStFr;
+
+typedef struct{
+	string RNAME;
+	int POS;
+	cds_word Permutation;
+}RPP;
+
+typedef struct{
+	vector<RPP> rpp;
+	vector<string> SEQ;
+}PSR;
+
+typedef struct{   
+	vector<int> FLAG;
+	vector<int> MAPQ;
+}REFI;
+
+
+void pushTableStFr(TableStFr *stfr, string s);
+
+void pushRPP(vector<RPP>& rpp, string RN, int PO, cds_word Pe);
+
+void pushPSR(PSR *psr, string RN, int PO, cds_word Pe, string SE);
+		
+void pushREFI(REFI *refi, int FL, int MA);		
+		
+void clearPSR(PSR *psr);
+
+void clearREFI(REFI *refi);
+
+void Tokenize(const string& str, vector<string>& tokens, const string& delimiters = " ");
+
+bool compareRPP(RPP first, RPP second);
+
+
+#endif
+

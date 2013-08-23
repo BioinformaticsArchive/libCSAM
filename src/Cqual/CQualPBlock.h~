@@ -1,0 +1,61 @@
+
+#ifndef _CQUALPBLOCK_H
+#define _CQUALPBLOCK_H
+
+#include <cmath>
+#include <algorithm>
+#include "CQual.h"
+
+
+class CQualPBlock : public CQual{
+
+	public:
+		/*Compress the quality vector, given the fidelity param lossyparam
+		 * m: 0- Quality values stored as plain ASCII bytes
+		 * 		1- Quality values stored as binary value using range between min and 
+		 * 		   max values over the whole file.
+		 * 		2- Quality values stored as binary value using range between local min 
+		 *			 and max values over each quality line*/
+		CQualPBlock(vector<string> QUAL, vector<RPP> rpp, int lossyparam, int m, cds_word sample);
+		virtual ~CQualPBlock();
+		virtual cds_word getSize() const;
+		
+		/*get quality lines x to y*/
+		virtual vector<string> getInterval(cds_word x, cds_word y) const;
+
+		/** Stores the Compressed Quality given a file pointer. */
+		virtual void Save(ofstream &fp) const;
+
+		virtual string * getAllQual() const;
+
+		/** Reads a CQual file determining the type. */
+		static CQualPBlock *Load(ifstream &fp);
+
+
+	protected:
+		void getArrays(vector<string> qual, vector<RPP> rpp, string& Occarray, string& QualityArray, int lossyparam);
+		void storeQualityASCII(string QualityArray);
+		void storeQualityGlobalmm(string QualityArray);
+		void storeQualityLocalmm(string QualityArray, string OccArray);
+
+		int mode;
+		cds_word sampleRate;
+		cds_word *SamRL, *SamBS;
+		cds_word sizeQualLine;
+		cds_word lengthRunLength;
+		cds_word *RunLength;
+		cds_word lengthByteSeq;
+		cds_word *ByteSeq;
+		cds_word globalMax, globalMin;
+		string LocalMin;
+		string LocalMax;		
+		cds_word numberOfValues; //total numer of quality values stored
+		cds_word numberOfLines; //total number of quality lines stored
+	
+	private:
+		CQualPBlock();
+
+};
+
+
+#endif

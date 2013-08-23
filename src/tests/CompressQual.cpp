@@ -1,0 +1,117 @@
+
+
+#include <iostream>
+#include <fstream>
+#include <cctype>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <cmath>
+#include <algorithm>
+#include "./../SAM.h" 
+#include "./../Cqual/CQual.h"
+
+int main (int argc, char *argv[]){
+	CQual *cqual;
+	int lossyparameter = 0;
+	cds_word sample = 0;
+	cds_word qualmode = 0;
+	bool reorder = false;
+
+	if(argc ==1){
+		cout << "Use: ./CompressQual <arch> <opt>" << endl;
+		cout << "opt: " << endl;
+		cout << "-q mode: How the Quality values are stored. mode=0 gzip, mode=1 pblock, mode=2 rblock, mode=3 bins, mode=4 no store. Default: mode 0" << endl;
+		cout << "-r : Reorder the quality scores by reference and position. Also the permutation is stored" << endl;
+		cout << "-s sample:  size of the sample rate that will be use. Default: no sample" << endl;
+		cout << "-l lossy: lossy parameter use to compress the quality score depending on the mode use. Default: 0" << endl; 
+		return 0;
+	}
+
+	string filename = argv[1];
+
+	int c;
+	while((c = getopt (argc, argv, "q:rl:s:")) != -1){
+		switch (c){
+			case 'q':	qualmode = atoi(optarg); 	break;
+			case 'r':	reorder = true; 		break;
+			case 's':	sample = atoi(optarg);	break;
+			case 'l': 	lossyparameter = atoi(optarg); break;
+			case '?': if(optopt == 's') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+									else if(optopt == 'q') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+									else if(optopt == 'l') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+									else if(isprint (optopt)) fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+				        else fprintf(stderr,"Unknown option character `\\x%x'.\n",	optopt);
+				        return 1;
+			default:	abort ();
+		}
+	}
+
+	/*get the Quality fields*/
+	string line, qual;
+	cds_word permutation = 0;
+	vector<string> QUAL;
+	vector<string> tokens; 
+	vector<RPP> rpp;
+	ifstream SamFile(filename.c_str());
+	if (!SamFile.is_open()){
+		cout << "Unable to open file" << endl;
+		return 1;
+	}
+	getline(SamFile, line);
+	while (SamFile.good() ){
+		if(line[0] != '@'){
+			Tokenize(line, tokens, "\t");
+			QUAL.push_back(tokens[10]);
+			pushRPP(rpp, tokens[2], atoi(tokens[3].c_str()), permutation);
+			tokens.clear();
+			permutation ++;
+		}
+		getline (SamFile,line);
+	}
+	SamFile.close();
+	/*reorder rpp only if parameter is presented*/
+	if(reorder)
+		sort(rpp.begin(), rpp.end(), compareRPP);
+
+	/*create CQual data structure*/	
+	
+	switch(qualmode){
+		case 0: cqual = new CQualLL(QUAL, rpp, sample); break;
+		case 1: cqual = new CQualPBlock(QUAL, rpp, lossyparameter, 2, sample); break;
+		case 2: cqual = new CQualRBlock(QUAL, rpp, lossyparameter, 2, sample); break;
+		case 3: cqual = new CQualBin(QUAL, rpp, lossyparameter, 0, sample); break;
+		case 4: cqual = new CQualNStore(QUAL, rpp, lossyparameter); break;
+		default: cout << "Error: Qual mode selected do not exist" << endl; exit(0);
+	}
+	QUAL.clear();
+	cout << "Size CQual in MB: " <<  ((cqual->getSize()*1.0)/1048576) << endl;
+
+	ofstream fileCQual;
+	string file = ".cqual";
+	file = filename + file;
+	fileCQual.open(file.c_str());
+	/*save Cqual file*/
+	SaveValue(fileCQual, permutation);
+	cqual->Save(fileCQual);
+	SaveValue(fileCQual, reorder);
+	if(reorder){
+		/*save Permutation*/
+		cds_word bitsPer =  (cds_word)(ceil(log2(permutation)));
+		cds_word lengthPer = (bitsPer * permutation + kWordSize - 1) / kWordSize;
+		cds_word *Permutation = new cds_word[lengthPer];
+		for(cds_word i = 0; i < lengthPer; i++)
+			Permutation[i] = 0;
+		for(cds_word i = 0; i < permutation; i++)
+			SetField(Permutation, bitsPer, i, (rpp[i]).Permutation);
+
+		delete [] Permutation;
+		SaveValue(fileCQual, Permutation, lengthPer);
+		cout << "Size Permutation in MB: " <<  ((lengthPer*sizeof(cds_word)*1.0)/1048576) << endl;
+	}
+	fileCQual.close();
+	
+	delete cqual;
+	return 0;
+}
+
