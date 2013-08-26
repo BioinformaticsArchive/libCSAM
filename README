@@ -42,3 +42,21 @@ DecompressQual:
 Use: ./DecompressQual <arch>
 	arch: 	.cqual File
 	output:	.qual File containing the quality scores
+
+
+This library includes three basic python codes that can help to
+the downstream analysis of the quality lossy transforms.
+
+	Get_qual.py :  Extrac the quality field of a SAM file
+	Use: python ./Get_qual.py file.sam
+ 	output:  file.sam.qual
+
+	Compute_r.py: Compare two quality files and compute its Max:Min distance
+ 	Use: python ./Compute_r.py qualityFile.qual referenceFile.qual
+ 	output:  (Max:Min distance), (Standart deviation)  
+
+ 	Change_qual.py: Change the quality field of a SAM file with the quality file given
+  Use: python ./Change_qual file.sam new_qual.qual
+	output: newSAM.sam
+
+
