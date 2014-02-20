@@ -292,6 +292,8 @@ cds_word CQualPBlock::getSize() const{
 		if(sampleRate > 0)
 			mem_sample = 2 * ((numberOfLines + sampleRate -1)/sampleRate) * sizeof(cds_word);
 	}
+	cout << "Runlength: " << ((mem_run * 1.0) / 1048576) << endl;
+	cout << "Representative:" << ((mem_byse * 1.0) / 1048576) << endl;
 	return mem + mem_run + mem_byse + mem_sample;
 }
 

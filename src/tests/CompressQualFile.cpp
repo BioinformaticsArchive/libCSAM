@@ -20,11 +20,10 @@ int main (int argc, char *argv[]){
 	bool reorder = false;
 
 	if(argc ==1){
-		cout << "Use: ./CompressQual <arch> <opt>" << endl;
+		cout << "Use: ./CompressQualFie <arch>.qual <opt>" << endl;
 		cout << "opt: " << endl;
 		cout << "-q qm: How the Quality values are stored. qm=0 gzip, qm=1 pblock, qm=2 rblock, qm=3 bins, qm=4 no store. Default: qm 0" << endl;
 		cout << "-m mode: If qm is 1 or 2, give the mode use to store the Representative Array. mode=0 ASCII, mode=1 Binary Global, mode=2 Binary Local. Default mode=1" << endl;
-		cout << "-r : Reorder the quality scores by reference and position. Also the permutation is stored" << endl;
 		cout << "-s sample:  size of the sample rate that will be use. Default: no sample" << endl;
 		cout << "-l lossy: lossy parameter use to compress the quality score depending on the mode use. Default: 0" << endl; 
 		return 0;
@@ -33,13 +32,12 @@ int main (int argc, char *argv[]){
 	string filename = argv[1];
 
 	int c;
-	while((c = getopt (argc, argv, "q:rl:s:")) != -1){
+	while((c = getopt (argc, argv, "q:l:s:m:")) != -1){
 		switch (c){
 			case 'q':	qualmode = atoi(optarg); 	break;
-			case 'r':	reorder = true; 		break;
 			case 's':	sample = atoi(optarg);	break;
 			case 'm': mode = atoi(optarg); break;
-			case 'l': 	lossyparameter = atoi(optarg); break;
+			case 'l': lossyparameter = atoi(optarg); break;
 			case '?': if(optopt == 's') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
 									else if(optopt == 'q') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
 									else if(optopt == 'm') fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -52,34 +50,24 @@ int main (int argc, char *argv[]){
 	}
 
 	/*get the Quality fields*/
-	string line, qual;
+	string qual;
 	cds_word permutation = 0;
 	vector<string> QUAL;
-	vector<string> tokens; 
 	vector<RPP> rpp;
-	ifstream SamFile(filename.c_str());
-	if (!SamFile.is_open()){
+	ifstream QualFile(filename.c_str());
+	if (!QualFile.is_open()){
 		cout << "Unable to open file" << endl;
 		return 1;
 	}
-	getline(SamFile, line);
-	while (SamFile.good() ){
-		if(line[0] != '@'){
-			Tokenize(line, tokens, "\t");
-			QUAL.push_back(tokens[10]);
-			pushRPP(rpp, tokens[2], atoi(tokens[3].c_str()), permutation);
-			tokens.clear();
-			permutation ++;
-		}
-		getline (SamFile,line);
+	getline(QualFile, qual);
+	while (QualFile.good() ){
+		QUAL.push_back(qual);
+		pushRPP(rpp, "", 0, permutation);
+		permutation ++;
+		getline (QualFile, qual);
 	}
-	SamFile.close();
-	/*reorder rpp only if parameter is presented*/
-	if(reorder)
-		sort(rpp.begin(), rpp.end(), compareRPP);
-
+	QualFile.close();
 	/*create CQual data structure*/	
-	
 	switch(qualmode){
 		case 0: cqual = new CQualLL(QUAL, rpp, sample); break;
 		case 1: cqual = new CQualPBlock(QUAL, rpp, lossyparameter, mode, sample); break;
