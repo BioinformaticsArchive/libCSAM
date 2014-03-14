@@ -33,6 +33,7 @@ Use: ./CompressQual <arch> <opt>
 	output: .cqual File
 
 
+
 Example:
 ./CompressQual ./data/file.sam -q 2 -l 60 -s 500 -r
 
@@ -41,12 +42,19 @@ output: file.sam.cqual
 Compress the quality scores of file.sam using R-Block with r=1.60 storing a sample every 500 lines and reordering the file 
 by reference and position in the reference.
 
+We also include a simpler version called "CompressQualFile", which, instead of receive a SAM file as input, receive 
+a file containing only the quality scores.
+
+
 
 DecompressQual:
 Use: ./DecompressQual <arch>
 	arch: 	.cqual File
 	output:	.qual File containing the quality scores
 
+
+Note: These codes assume that the quality reads are all of the same size. Also assume that 
+the computer have enough RAM memmory to read and store the complete input.
 
 This library includes three basic python codes that can help to
 the downstream analysis of the quality lossy transforms.
@@ -55,12 +63,18 @@ the downstream analysis of the quality lossy transforms.
 	Use: python ./Get_qual.py file.sam
  	output:  file.sam.qual
 
-	Compute_r.py: Compare two quality files and compute its Max:Min distance
- 	Use: python ./Compute_r.py qualityFile.qual referenceFile.qual
- 	output:  (Max:Min distance), (Standart deviation)  
+	ComputeMetrics.cpp: Compare two quality files and compute some distance metrics
+ 	(compile first: g++ -o ComputeMetrics ComputeMetrics.cpp)
+ 	Use: ./ComputeMetrics qualityFile.qual referenceFile.qual
+ 	   
 
  	Change_qual.py: Change the quality field of a SAM file with the quality file given
-  Use: python ./Change_qual file.sam new_qual.qual
+  Use: python ./Change_qual.py file.sam new_qual.qual
 	output: newSAM.sam
+	
+	Change_qual_letter.py: Change the quality field of a SAM file to only one quality score 
+	value.
+  Use: python ./Change_qual_letter.py file.sam letter name_output.sam
+	output: name_output.sam
 
 
